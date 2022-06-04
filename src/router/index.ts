@@ -1,25 +1,29 @@
-import { createRouter, createWebHistory, RouteRecordRaw } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
-
-const routes: Array<RouteRecordRaw> = [
-  {
-    path: '/',
-    name: 'home',
-    component: HomeView
-  },
-  {
-    path: '/about',
-    name: 'about',
-    // route level code-splitting
-    // this generates a separate chunk (about.[hash].js) for this route
-    // which is lazy-loaded when the route is visited.
-    component: () => import(/* webpackChunkName: "about" */ '../views/AboutView.vue')
-  }
-]
-
+import { createRouter, createWebHashHistory } from "vue-router";
+import { routes } from "./routes";
+import { Toast } from "vant";
+import useGlobalStore from "@/store/modules/global/global";
+let pathList = ["/person", "/updateperson", "/store"];
 const router = createRouter({
-  history: createWebHistory(process.env.BASE_URL),
-  routes
-})
+  history: createWebHashHistory(process.env.BASE_URL),
+  routes,
+});
+// 根据登陆状态决定跳转到什么页面
+router.beforeEach(async (to, from, next) => {
+  let token = localStorage.getItem("token");
+  const globalStore = useGlobalStore();
+  if (token && !globalStore.isLogin) {
+    const res = await globalStore.getCheckLoginAsync();
+    if (res) {
+      await globalStore.getUserInfoAsync();
+    }
+  }
+  if (pathList.includes(to.path)) {
+    if (!globalStore.isLogin) {
+      Toast("请先进行登录");
+      next("/login");
+    }
+  }
+  next();
+});
 
-export default router
+export default router;
